@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>𝐒𝐨𝐥𝐯𝐞 𝐖𝐢𝐭𝐡 𝐏𝐨𝐥𝐥𝐬</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; scroll-behavior: smooth; }
+    .hidden-view { display: none; }
+    .locked-option { opacity: 0.6; cursor: not-allowed; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <div class="bg-blue-600 text-white text-center py-2 px-4 shadow-md sticky top-0 z-50">
+    <a href="https://t.me/solve_with_polls" target="_blank" class="font-bold flex items-center justify-center gap-2 hover:text-blue-200 transition">
+      <i class="fab fa-telegram"></i> Join this channel for more exams
+    </a>
+  </div>
+
+  <div class="max-w-4xl mx-auto p-4 mt-6">
+    <h1 class="text-3xl font-extrabold text-center mb-8 text-blue-700">𝐒𝐨𝐥𝐯𝐞 𝐖𝐢𝐭𝐡 𝐏𝐨𝐥𝐥𝐬</h1>
+
+    <div id="nav-switcher" class="flex justify-center gap-4 mb-6">
+      <button onclick="switchView('student-login')" class="px-4 py-2 bg-white rounded shadow text-sm font-semibold hover:bg-gray-100">Student Panel</button>
+      <button onclick="switchView('admin-auth')" class="px-4 py-2 bg-white rounded shadow text-sm font-semibold hover:bg-gray-100">Admin Panel</button>
+    </div>
+
+    <div id="admin-auth" class="hidden-view bg-white p-6 rounded-xl shadow-lg max-w-xl mx-auto">
+      <h2 class="text-xl font-bold mb-4 border-b pb-2 text-center text-red-600"><i class="fas fa-lock"></i> Admin Authentication</h2>
+      <input type="email" id="adminEmailInput" placeholder="Enter Admin Email" class="w-full p-3 mb-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+      <button onclick="checkAdminAccess()" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition">Login as Admin</button>
+      <p id="authErrorMsg" class="mt-3 text-center text-red-500 font-semibold"></p>
+    </div>
+
+    <div id="admin-panel" class="hidden-view bg-white p-6 rounded-xl shadow-lg max-w-xl mx-auto">
+      <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700"><i class="fas fa-user-shield"></i> Admin: Setup Exam</h2>
+      <input type="text" id="adminExamName" placeholder="Exam Name (e.g. Chemistry Paper 1)" class="w-full p-3 mb-3 border rounded-lg">
+      <input type="number" id="adminTime" placeholder="Time Limit (Minutes)" class="w-full p-3 mb-3 border rounded-lg">
+      <input type="number" id="adminNegMark" placeholder="Negative Marking (e.g. 0.25)" step="0.01" class="w-full p-3 mb-3 border rounded-lg">
+      <label class="block text-sm font-medium mb-1 text-red-600">Exam Expiry Date & Time (Required):</label>
+      <input type="datetime-local" id="adminExpiry" class="w-full p-3 mb-3 border rounded-lg border-red-300">
+      <label class="block text-sm font-medium mb-1">Upload JSON File:</label>
+      <input type="file" id="jsonFileInput" accept=".json" class="w-full p-2 mb-4 border rounded-lg">
+      <button onclick="uploadExam()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Set Active Exam</button>
+      <p id="adminMsg" class="mt-3 text-center font-semibold"></p>
+    </div>
+
+    <div id="student-login" class="bg-white p-6 rounded-xl shadow-lg max-w-xl mx-auto">
+      <h2 class="text-xl font-bold mb-4 border-b pb-2"><i class="fas fa-user-graduate"></i> Student Details</h2>
+      <input type="text" id="stuName" placeholder="Full Name" required class="w-full p-3 mb-3 border rounded-lg">
+      <input type="text" id="stuClass" placeholder="Class / Batch" required class="w-full p-3 mb-3 border rounded-lg">
+      <input type="email" id="stuEmail" placeholder="Email Address" required class="w-full p-3 mb-4 border rounded-lg">
+      <button onclick="startExam()" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition">Start Exam</button>
+      <p id="loginMsg" class="mt-3 text-center text-red-500 font-semibold"></p>
+    </div>
+
+    <div id="exam-interface" class="hidden-view">
+      <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4">
+        <h2 id="displayExamName" class="text-lg font-bold text-blue-700">Loading...</h2>
+        <div class="text-red-600 font-bold text-xl"><i class="fas fa-clock"></i> <span id="timerDisplay">00:00</span></div>
+      </div>
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-3/4">
+          <div id="questionsContainer" class="space-y-6 mb-6"></div>
+          <button onclick="submitExam()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 transition shadow-lg text-lg">Submit Final Answers</button>
+        </div>
+        <div class="w-full md:w-1/4">
+          <div class="sticky top-20 bg-white p-4 rounded-xl shadow-lg border">
+            <h3 class="font-bold text-gray-700 mb-3 border-b pb-2 text-center">Status Tracker</h3>
+            <div id="questionSidebar" class="grid grid-cols-4 gap-2"></div>
+            <div class="mt-4 text-xs text-gray-600 space-y-1">
+              <p><span class="inline-block w-3 h-3 bg-red-100 border border-red-300 rounded-full mr-1"></span> Skipped / Unanswered</p>
+              <p><span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> Answered (Locked)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-interface" class="hidden-view bg-white p-6 rounded-xl shadow-lg text-center max-w-2xl mx-auto">
+      <h2 class="text-2xl font-extrabold text-green-600 mb-2">Exam Completed!</h2>
+      <p id="savingStatus" class="text-gray-500 mb-4">Saving your data to server...</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div class="bg-blue-50 p-4 rounded-lg"><h3 class="text-blue-800 font-bold">Total</h3><p id="resTotal" class="text-2xl">0</p></div>
+        <div class="bg-green-50 p-4 rounded-lg"><h3 class="text-green-800 font-bold">Correct</h3><p id="resCorrect" class="text-2xl">0</p></div>
+        <div class="bg-red-50 p-4 rounded-lg"><h3 class="text-red-800 font-bold">Wrong</h3><p id="resWrong" class="text-2xl">0</p></div>
+        <div class="bg-gray-100 p-4 rounded-lg"><h3 class="text-gray-600 font-bold">Skipped</h3><p id="resSkip" class="text-2xl">0</p></div>
+      </div>
+      <div class="mt-6 p-4 bg-gray-50 border rounded-lg">
+        <h3 class="text-lg font-bold text-gray-700">Final Score</h3>
+        <p id="resFinalScore" class="text-4xl font-extrabold text-blue-600 mt-2">0</p>
+        <p id="resPenalty" class="text-sm text-red-500 mt-1"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ⚠️ এখানে তোমার Google Apps Script-এর Deploy করা লিংকটি বসাও ⚠️
+    const API_URL = "YOUR_GOOGLE_SCRIPT_WEB_APP_URL_HERE";
+
+    let activeExamData = null;
+    let studentData = {};
+    let timerInterval;
+
+    async function callBackend(payload) {
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (error) {
+        return { status: "error", message: error.message };
+      }
+    }
+
+    function switchView(viewId) {
+      document.getElementById('admin-auth').classList.add('hidden-view');
+      document.getElementById('admin-panel').classList.add('hidden-view');
+      document.getElementById('student-login').classList.add('hidden-view');
+      document.getElementById('exam-interface').classList.add('hidden-view');
+      document.getElementById('result-interface').classList.add('hidden-view');
+      document.getElementById(viewId).classList.remove('hidden-view');
+      const nav = document.getElementById('nav-switcher');
+      nav.style.display = (viewId === 'student-login' || viewId === 'admin-auth' || viewId === 'admin-panel') ? 'flex' : 'none';
+    }
+
+    function checkAdminAccess() {
+      const emailInput = document.getElementById('adminEmailInput').value.trim();
+      if (emailInput === 'mdmahfizkaif959@gmail.com') {
+        document.getElementById('authErrorMsg').innerText = "";
+        document.getElementById('adminEmailInput').value = ""; 
+        switchView('admin-panel'); 
+      } else {
+        document.getElementById('authErrorMsg').innerText = "Wrong Email! Access Denied.";
+      }
+    }
+
+    function uploadExam() {
+      const name = document.getElementById('adminExamName').value;
+      const time = document.getElementById('adminTime').value;
+      const negMark = document.getElementById('adminNegMark').value;
+      const expiry = document.getElementById('adminExpiry').value;
+      const fileInput = document.getElementById('jsonFileInput');
+
+      if (!name || !time || !negMark || !expiry || fileInput.files.length === 0) {
+        return alert("All fields are required including JSON file!");
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = async function(e) {
+        const jsonString = e.target.result;
+        const msgEl = document.getElementById('adminMsg');
+        msgEl.innerText = "Uploading to server... please wait.";
+        msgEl.className = "mt-3 text-center font-semibold text-blue-600";
+        
+        const res = await callBackend({
+          action: "saveExamConfig",
+          examName: name, timeLimit: time, negativeMarking: negMark, expiryTime: expiry, jsonString: jsonString
+        });
+
+        if(res.status === "success") {
+          msgEl.className = "mt-3 text-center font-semibold text-green-600";
+          msgEl.innerText = res.message;
+          setTimeout(() => switchView('student-login'), 2000);
+        } else {
+          msgEl.className = "mt-3 text-center font-semibold text-red-600";
+          msgEl.innerText = "Error: " + res.message;
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    async function startExam() {
+      studentData = {
+        name: document.getElementById('stuName').value,
+        class: document.getElementById('stuClass').value,
+        email: document.getElementById('stuEmail').value
+      };
+
+      if(!studentData.name || !studentData.class) {
+        document.getElementById('loginMsg').innerText = "Name and Class are required!"; return;
+      }
+
+      document.getElementById('loginMsg').innerText = "Fetching exam... Please wait.";
+      
+      const res = await callBackend({ action: "getActiveExam" });
+
+      if(res.status !== "success" || !res.data) {
+        document.getElementById('loginMsg').innerText = "No active exam found or server error."; return;
+      }
+      
+      const exam = res.data;
+      if(exam.expired) {
+        document.getElementById('loginMsg').innerText = "This exam has expired and is no longer available."; 
+        return;
+      }
+      
+      activeExamData = exam;
+      studentData.examId = exam.id;
+      document.getElementById('displayExamName').innerText = exam.name;
+      
+      renderQuestions();
+      renderSidebar();
+      switchView('exam-interface');
+      startTimer(exam.time * 60);
+    }
+
+    function cleanOptionText(text) {
+      return text.replace(/\s*\([^)]*\)\s*/g, '').trim();
+    }
+
+    function renderSidebar() {
+      const sidebar = document.getElementById('questionSidebar');
+      let html = '';
+      activeExamData.questions.forEach((_, index) => {
+        html += `<button id="navBtn_${index}" onclick="scrollToQ(${index})" class="p-2 bg-red-100 text-red-800 border border-red-300 rounded font-bold text-sm hover:bg-red-200 transition">${index + 1}</button>`;
+      });
+      sidebar.innerHTML = html;
+    }
+
+    function scrollToQ(index) {
+      document.getElementById(`questionBox_${index}`).scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+      
+      activeExamData.questions.forEach((q, index) => {
+        let optionsHtml = '';
+        q.options.forEach((opt, optIdx) => {
+          let cleanText = cleanOptionText(opt); 
+          optionsHtml += `
+            <label id="label_${index}_${optIdx}" class="block p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition mb-2">
+              <input type="radio" name="q_${index}" value="${optIdx}" onchange="lockAnswer(${index}, ${optIdx})" class="mr-2 accent-blue-600">
+              ${cleanText}
+            </label>
+          `;
+        });
+
+        container.innerHTML += `
+          <div class="p-4 border rounded-xl bg-white shadow-sm" id="questionBox_${index}">
+            <h3 class="font-bold text-gray-800 mb-3"><span class="text-blue-600">${index + 1}.</span> ${q.question}</h3>
+            ${optionsHtml}
+          </div>
+        `;
+      });
+    }
+
+    function lockAnswer(qIndex, selectedOptIdx) {
+      const radios = document.getElementsByName(`q_${qIndex}`);
+      radios.forEach((radio, idx) => {
+        if (idx !== selectedOptIdx) {
+          radio.disabled = true; 
+          document.getElementById(`label_${qIndex}_${idx}`).classList.add('locked-option'); 
+        }
+      });
+      const navBtn = document.getElementById(`navBtn_${qIndex}`);
+      if(navBtn) {
+        navBtn.classList.remove('bg-red-100', 'text-red-800', 'border-red-300', 'hover:bg-red-200');
+        navBtn.classList.add('bg-green-500', 'text-white', 'border-green-600');
+      }
+    }
+
+    function startTimer(durationInSeconds) {
+      let timer = durationInSeconds;
+      timerInterval = setInterval(() => {
+        let minutes = parseInt(timer / 60, 10);
+        let seconds = parseInt(timer % 60, 10);
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+        
+        document.getElementById('timerDisplay').innerText = minutes + ":" + seconds;
+        
+        if (--timer < 0) {
+          clearInterval(timerInterval);
+          alert("Time is up! Submitting your answers automatically.");
+          submitExam();
+        }
+      }, 1000);
+    }
+
+    async function submitExam() {
+      clearInterval(timerInterval);
+      switchView('result-interface');
+      
+      let correct = 0, wrong = 0, skip = 0;
+      const totalQuestions = activeExamData.questions.length;
+      
+      activeExamData.questions.forEach((q, index) => {
+        const selected = document.querySelector(`input[name="q_${index}"]:checked`);
+        if (!selected) {
+          skip++;
+        } else if (parseInt(selected.value) === q.correct_option_id) {
+          correct++;
+        } else {
+          wrong++;
+        }
+      });
+
+      const negMarking = parseFloat(activeExamData.negative) || 0;
+      const penalty = wrong * negMarking;
+      const finalScore = (correct - penalty).toFixed(2);
+
+      document.getElementById('resTotal').innerText = totalQuestions;
+      document.getElementById('resCorrect').innerText = correct;
+      document.getElementById('resWrong').innerText = wrong;
+      document.getElementById('resSkip').innerText = skip;
+      document.getElementById('resFinalScore').innerText = finalScore;
+      if(penalty > 0) document.getElementById('resPenalty').innerText = `(${penalty} marks deducted)`;
+
+      const resultData = { correct, wrong, skip, totalScore: finalScore, penalty };
+      const msgEl = document.getElementById('savingStatus');
+
+      const res = await callBackend({
+        action: "saveUserResult",
+        studentData: studentData, resultData: resultData
+      });
+
+      if(res.status === "success") {
+        msgEl.innerText = res.message;
+        msgEl.className = "text-green-600 font-bold mb-4";
+      } else {
+        msgEl.innerText = "Error: " + res.message;
+        msgEl.className = "text-red-500 font-bold mb-4";
+      }
+    }
+  </script>
+</body>
+</html>
